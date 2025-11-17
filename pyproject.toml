@@ -5,8 +5,14 @@ description = "Visual Sequential Schemes Recognition"
 authors = [
     { name = "Martin Krawiec, Jan Woliński, Tobiasz Jóźwiak" }
 ]
-
+readme = "README.md"
 requires-python = ">=3.10"
+
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "torch"
+]
 
 [build-system]
 requires = ["setuptools"]
