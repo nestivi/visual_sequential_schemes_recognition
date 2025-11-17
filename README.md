@@ -75,8 +75,10 @@ visual_sequentional_schemes_recognition/
 ├─ tests/
 │  └─ test.mp4
 │
-├─ pyproject.toml
-└─ README.md
+├─ .gitignore
+├─ README.md
+├─ main.py
+└─ pyproject.toml
 
 ```
 
