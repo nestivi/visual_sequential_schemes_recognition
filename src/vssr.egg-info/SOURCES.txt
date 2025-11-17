@@ -2,7 +2,13 @@ README.md
 pyproject.toml
 src/vssr/__init__.py
 src/vssr/__main__.py
+src/vssr/config.py
+src/vssr/detection.py
+src/vssr/state.py
+src/vssr/utils.py
+src/vssr/video.py
 src/vssr.egg-info/PKG-INFO
 src/vssr.egg-info/SOURCES.txt
 src/vssr.egg-info/dependency_links.txt
+src/vssr.egg-info/requires.txt
 src/vssr.egg-info/top_level.txt

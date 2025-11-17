@@ -3,4 +3,16 @@ Name: vssr
 Version: 0.1.0
 Summary: Visual Sequential Schemes Recognition
 Author: Martin Krawiec, Jan Woliński, Tobiasz Jóźwiak
-Requires-Python: >=3.10
+Requires-Python: <3.11,>=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: opencv-python>=4.7.0
+Requires-Dist: mediapipe>=0.10.1
+
+# visual_sequentional_schemes_recognition
+Recognition of sequentional visual schemes.
+
+How to run:
+
+```
+python -m vssr
+```
