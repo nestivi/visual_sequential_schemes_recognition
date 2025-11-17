@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+src/vssr/__init__.py
+src/vssr/__main__.py
+src/vssr.egg-info/PKG-INFO
+src/vssr.egg-info/SOURCES.txt
+src/vssr.egg-info/dependency_links.txt
+src/vssr.egg-info/top_level.txt
