@@ -64,16 +64,20 @@ visual_sequentional_schemes_recognition/
 │
 ├─ src/
 │  └─ vssr/
+│     ├─ __init__.py
 │     ├─ __main__.py
-│     ├─ video.py
-│     ├─ detection.py
 │     ├─ config.py
+│     ├─ detection.py
+│     ├─ state.py
+│     ├─ utils.py
+│     ├─ video.py
 │
 ├─ tests/
 │  └─ test.mp4
 │
-├─ requirements.txt
+├─ pyproject.toml
 └─ README.md
+
 ```
 
 ---
