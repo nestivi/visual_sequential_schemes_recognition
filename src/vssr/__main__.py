@@ -1,5 +1,4 @@
-def main():
-    print("Visual Sequential Schemes Recognition - start aplikacji")
+from video import run_video
 
 if __name__ == "__main__":
-    main()
+    run_video()
