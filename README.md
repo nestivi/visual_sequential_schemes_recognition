@@ -21,42 +21,40 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
    cd visual_sequentional_schemes_recognition
    ```
 
-2. Create and activate a virtual environment
+2. **Create and activate a virtual environment**
 
     ```bash
     python -m venv .venv
     .\.venv\Scripts\activate
     ```
 
-3. Update pip and setuptools
+3. **Update pip and setuptools**
 
     ```bash
     python -m pip install --upgrade pip setuptools wheel
     ```
 
-4. Check that the test video exists
+4. **Check that the test video exists**
 
     - The test video should be located in the tests/test.mp4 file.
 
     - If the file has a different name or path, update the VIDEO_FILE variable in src/vssr/config.py.
 
-##################
-Running the program
+## Running the program
 
-1. Make sure the virtual environment is activated:
+1. **Make sure the virtual environment is activated:**
     ```bash
     .\.venv\Scripts\activate
     ```
 
-2. Run the module:
+2. **Run the module:**
     ```bash
     python -m vssr
     ```
-3. Press q in the video window to quit the program.
+3. **Press q in the video window to quit the program.**
 
 
-##################
-Project Structure
+## Project Structure
 
 ```bash
 visual_sequentional_schemes_recognition/
@@ -77,7 +75,7 @@ visual_sequentional_schemes_recognition/
 ```
 
 
-Notes
+## Notes
 
 The project works best with Python 3.10 on Windows.
 
