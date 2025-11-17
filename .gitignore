@@ -50,3 +50,9 @@ Thumbs.db
 .idea/
 *.sublime-workspace
 *.sublime-project
+
+
+# ------------------------
+# Wyniki
+# ------------------------
+sequence.txt

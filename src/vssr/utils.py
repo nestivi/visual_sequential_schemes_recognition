@@ -13,7 +13,7 @@ def draw_buttons(frame):
         cv2.putText(frame, name, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-def save_sequence(sequence, filename="sekwencja.txt"):
+def save_sequence(sequence, filename="sequence.txt"):
     """Zapisuje sekwencję kliknięć do pliku."""
     try:
         with open(filename, "w", encoding="utf-8") as f:
