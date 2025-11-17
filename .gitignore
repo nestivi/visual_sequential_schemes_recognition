@@ -1,0 +1,52 @@
+# ------------------------
+# Środowisko wirtualne
+# ------------------------
+.venv/
+venv/
+
+# ------------------------
+# Python cache
+# ------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ------------------------
+# Build / instalacja pakietu
+# ------------------------
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ------------------------
+# Testy i raporty
+# ------------------------
+htmlcov/
+.coverage
+.pytest_cache/
+
+# ------------------------
+# Pliki tymczasowe / logi
+# ------------------------
+*.log
+*.tmp
+*.bak
+
+# ------------------------
+# Pliki VS Code
+# ------------------------
+.vscode/
+
+# ------------------------
+# Pliki systemowe
+# ------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------
+# Pliki IDE (opcjonalnie)
+# ------------------------
+.idea/
+*.sublime-workspace
+*.sublime-project
