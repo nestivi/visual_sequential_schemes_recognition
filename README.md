@@ -36,9 +36,11 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
 
 4. **Check that the test video exists**
 
-    - The test video should be located in the tests/test.mp4 file.
+    - The test video should be located in the tests/.
 
     - If the file has a different name or path, update the VIDEO_FILE variable in src/vssr/config.py.
+
+---
 
 ## Running the program
 
@@ -53,6 +55,7 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
     ```
 3. **Press q in the video window to quit the program.**
 
+---
 
 ## Project Structure
 
@@ -69,11 +72,11 @@ visual_sequentional_schemes_recognition/
 ├─ tests/
 │  └─ test.mp4
 │
-├─ .venv/           # virtual environment
 ├─ requirements.txt
 └─ README.md
 ```
 
+---
 
 ## Notes
 
