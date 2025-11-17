@@ -31,7 +31,7 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
 3. **Install the project in editable mode**
 
     ```bash
-    pip install -e
+    pip install -e .
     ```
 
 4. **Check that the test video exists**
