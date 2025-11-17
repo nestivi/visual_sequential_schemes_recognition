@@ -1,4 +1,4 @@
-from config import BUTTONS
+from .config import BUTTONS
 
 # Sekwencja kliknięć
 click_sequence = []

@@ -1,8 +1,8 @@
 import cv2
-from detection import process_frame
-from utils import draw_buttons, save_sequence
-from config import VIDEO_PATH
-from state import click_sequence
+from .detection import process_frame
+from .utils import draw_buttons, save_sequence
+from .config import VIDEO_PATH
+from .state import click_sequence
 import mediapipe as mp
 
 def run_video():

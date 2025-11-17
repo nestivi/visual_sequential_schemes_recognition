@@ -1,7 +1,7 @@
 import cv2
 import mediapipe as mp
-from config import BUTTONS
-from state import register_click, reset_button
+from .config import BUTTONS
+from .state import register_click, reset_button
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils

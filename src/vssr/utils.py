@@ -1,9 +1,9 @@
 import cv2
-from config import BUTTONS
+from .config import BUTTONS
 
 def draw_buttons(frame):
     """Rysuje wszystkie przyciski z odpowiednimi kolorami."""
-    from state import button_states
+    from .state import button_states
     for name, (x, y, w, h) in BUTTONS.items():
         if button_states[name] == "wcisniety":
             color = (0, 255, 255)  # żółty dla aktywnego

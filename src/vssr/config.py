@@ -1,5 +1,8 @@
-# Ścieżka do pliku wideo
-VIDEO_PATH = "C:/kalisz27_10_projekt/test.mp4"
+import os
+
+# Ścieżka do pliku wideo testowego
+VIDEO_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "tests", "test.mp4")
+VIDEO_PATH = VIDEO_FILE
 
 # Przyciski: "NAZWA": (x, y, szerokość, wysokość)
 BUTTONS = {
