@@ -28,10 +28,10 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
     .\.venv\Scripts\activate
     ```
 
-3. **Update pip and setuptools**
+3. **Install enviorment as editable**
 
     ```bash
-    python -m pip install --upgrade pip setuptools wheel
+    pip install -e
     ```
 
 4. **Check that the test video exists**
