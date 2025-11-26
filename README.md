@@ -18,7 +18,6 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
 
    ```bash
    git clone <repository_url>
-   cd visual_sequentional_schemes_recognition
    ```
 
 2. **Create and activate a virtual environment**
