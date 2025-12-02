@@ -17,7 +17,7 @@ This project detects button clicks in a video using MediaPipe and OpenCV.
 1. **Clone or copy the project to your computer**
 
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/nestivi/visual_sequential_schemes_recognition.git
    ```
 
 2. **Create and activate a virtual environment**
