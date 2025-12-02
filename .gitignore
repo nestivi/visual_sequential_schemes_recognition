@@ -25,6 +25,8 @@ build/
 htmlcov/
 .coverage
 .pytest_cache/
+test*.mp4
+test*.mov
 
 # ------------------------
 # Pliki tymczasowe / logi
