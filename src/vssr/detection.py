@@ -1,9 +1,9 @@
 import cv2
 import mediapipe as mp
 from collections import deque
-from .config import BUTTONS, HAND_RECOGNITION, VISUAL
+from .config import BUTTONS, HAND_RECOGNITION, VISUAL, CLICK_MECHANICS
 from .state import register_click, reset_button
-from .utils import FingerTracker, is_finger_pointing, get_pinch_distance
+from .utils import FingerTracker, is_finger_pointing, is_finger_clicking_z
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -13,14 +13,7 @@ finger_tracker = FingerTracker(
     buffer_size=HAND_RECOGNITION["smoothing_buffer_size"]
 )
 
-
 def initialize_hands():
-    """
-    Initialize MediaPipe Hands with parameters from config.
-    
-    Returns:
-        mp.solutions.hands.Hands: Configured Hands object
-    """
     return mp_hands.Hands(
         static_image_mode=False,
         max_num_hands=1,
@@ -29,20 +22,7 @@ def initialize_hands():
         model_complexity=HAND_RECOGNITION["model_complexity"]
     )
 
-
 def process_frame(frame, hands):
-    """
-    Process a single frame, detect hand and register clicks.
-    
-    Args:
-        frame: Input frame from camera
-        hands: MediaPipe Hands object
-        
-    Returns:
-        tuple: (processed_frame, active_button)
-            - processed_frame: Frame with overlays
-            - active_button: True if any button is active
-    """
     h_frame, w_frame, _ = frame.shape
     
     # Convert to RGB for MediaPipe
@@ -68,40 +48,36 @@ def process_frame(frame, hands):
                 _reset_all_buttons()
                 return frame, active_button
         
-        # Get finger position
+        # Get finger position (XY)
         fingertip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
         cx = int(fingertip.x * w_frame)
         cy = int(fingertip.y * h_frame)
         
-        # Apply smoothing if enabled
+        # Apply smoothing
         if HAND_RECOGNITION["use_smoothing"]:
             cx, cy = finger_tracker.update(cx, cy)
         
-        # Check for click condition
-        should_click = True
+        # --- CLICK DETECTION (Z-AXIS ONLY) ---
+        should_click = False
+        debug_info = ""
         
-        if HAND_RECOGNITION["use_pinch"]:
-            pinch_distance = get_pinch_distance(hand_landmarks)
-            should_click = pinch_distance < HAND_RECOGNITION["pinch_threshold"]
-            
-            # Draw visual feedback
-            if should_click:
-                cv2.circle(
-                    frame, 
-                    (cx, cy), 
-                    VISUAL["pinch_radius"], 
-                    VISUAL["pinch_color"], 
-                    2
-                )
+        if HAND_RECOGNITION["use_depth_click"]:
+            is_clicking_z, current_depth = is_finger_clicking_z(hand_landmarks)
+            should_click = is_clicking_z
+            debug_info = f"Z-Depth: {current_depth:.3f}"
+        else:
+            # Fallback - always click if hand is present (for testing only)
+            should_click = True
+
+        # Draw visual feedback
+        current_color = VISUAL["click_color"] if should_click else VISUAL["finger_color"]
+        current_radius = VISUAL["click_radius"] if should_click else VISUAL["finger_radius"]
         
-        # Draw finger position
-        cv2.circle(
-            frame, 
-            (cx, cy), 
-            VISUAL["finger_radius"], 
-            VISUAL["finger_color"], 
-            -1
-        )
+        cv2.circle(frame, (cx, cy), current_radius, current_color, -1)
+        
+        # Display debug info
+        cv2.putText(frame, debug_info, (cx + 20, cy), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
         # Process button interactions
         if should_click:
@@ -110,7 +86,6 @@ def process_frame(frame, hands):
             _reset_all_buttons()
             
     else:
-        # No hand detected
         finger_tracker.reset()
         _reset_all_buttons()
     
@@ -118,16 +93,6 @@ def process_frame(frame, hands):
 
 
 def _check_button_clicks(cx, cy):
-    """
-    Check if finger position is over any button.
-    
-    Args:
-        cx: X coordinate of finger
-        cy: Y coordinate of finger
-        
-    Returns:
-        bool: True if any button is active
-    """
     active_button = False
     
     for name, (x, y, w, h) in BUTTONS.items():
@@ -141,6 +106,5 @@ def _check_button_clicks(cx, cy):
 
 
 def _reset_all_buttons():
-    """Reset all buttons to inactive state."""
     for name in BUTTONS.keys():
         reset_button(name)
