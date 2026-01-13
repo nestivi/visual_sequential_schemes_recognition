@@ -5,7 +5,9 @@
 import cv2
 import mediapipe as mp
 from collections import deque
-from .config import BUTTONS
+from .config import BUTTONS, CLICK_MECHANICS
+
+mp_hands = mp.solutions.hands
 
 def draw_buttons(frame):
     """
@@ -15,16 +17,16 @@ def draw_buttons(frame):
     for name, (x, y, w, h) in BUTTONS.items():
         if button_states[name] == "pressed":
             color = (0, 255, 255)  # yellow for active
+            thickness = -1         # fill button when pressed
         else:
             color = (0, 255, 0)    # green for inactive
-        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+            thickness = 2
+            
+        cv2.rectangle(frame, (x, y), (x + w, y + h), color, thickness)
         cv2.putText(frame, name, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
 def save_sequence(sequence, filename="sequence.txt"):
-    """
-        Saves the sequence of clicks to a file.
-    """
     try:
         with open(filename, "w", encoding="utf-8") as f:
             for click in sequence:
@@ -33,8 +35,6 @@ def save_sequence(sequence, filename="sequence.txt"):
     except Exception as e:
         print(f"An error occurred while saving to file: {e}")
 
-mp_hands = mp.solutions.hands
-
 class FingerTracker:
     """Smooths finger position to reduce jitter."""
     
@@ -42,7 +42,6 @@ class FingerTracker:
         self.positions = deque(maxlen=buffer_size)
     
     def update(self, x, y):
-        """Add new position and return smoothed average."""
         self.positions.append((x, y))
         if len(self.positions) == 0:
             return x, y
@@ -51,57 +50,28 @@ class FingerTracker:
         return avg_x, avg_y
     
     def reset(self):
-        """Clear all stored positions."""
         self.positions.clear()
 
 
 def is_finger_pointing(hand_landmarks):
-    """
-    Check if index finger is extended (pointing gesture).
-    
-    Args:
-        hand_landmarks: MediaPipe hand landmarks
-        
-    Returns:
-        bool: True if index finger is pointing
-    """
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
     index_pip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_PIP]
-    
-    # Index finger should be extended (tip above PIP joint)
     index_extended = index_tip.y < index_pip.y
-    
     return index_extended
 
 
-def get_pinch_distance(hand_landmarks):
+def is_finger_clicking_z(hand_landmarks):
     """
-    Calculate distance between thumb and index finger.
-    
-    Args:
-        hand_landmarks: MediaPipe hand landmarks
-        
-    Returns:
-        float: Euclidean distance between thumb and index finger tips
+    Check if the finger is pressing down using Z-axis depth.
+    Compares Index Finger Tip Z vs Wrist Z.
     """
-    thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+    wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
     
-    distance = ((thumb_tip.x - index_tip.x)**2 + 
-                (thumb_tip.y - index_tip.y)**2)**0.5
-    return distance
-
+    relative_depth = index_tip.z - wrist.z
+    is_clicking = relative_depth < CLICK_MECHANICS["click_depth_threshold"]
+    
+    return is_clicking, relative_depth
 
 def enhance_frame(frame, alpha=1.1, beta=10):
-    """
-    Improve frame quality for better hand detection.
-    
-    Args:
-        frame: Input frame
-        alpha: Contrast control (1.0-3.0)
-        beta: Brightness control (0-100)
-        
-    Returns:
-        Enhanced frame
-    """
     return cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
