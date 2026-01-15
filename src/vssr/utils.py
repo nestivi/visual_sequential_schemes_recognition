@@ -11,18 +11,27 @@ mp_hands = mp.solutions.hands
 
 def draw_buttons(frame):
     """
-        Drawing buttons on the frame with visual feedback.
+        Drawing buttons on the frame (CIRCLES for round buttons).
     """
     from .state import button_states
+    
     for name, (x, y, w, h) in BUTTONS.items():
+        # Calculate center and radius based on bounding box
+        center_x = x + w // 2
+        center_y = y + h // 2
+        radius = min(w, h) // 2
+        
         if button_states[name] == "pressed":
             color = (0, 255, 255)  # yellow for active
-            thickness = -1         # fill button when pressed
+            thickness = -1         # fill
         else:
             color = (0, 255, 0)    # green for inactive
             thickness = 2
-            
-        cv2.rectangle(frame, (x, y), (x + w, y + h), color, thickness)
+        
+        # Draw Circle instead of Rectangle
+        cv2.circle(frame, (center_x, center_y), radius, color, thickness)
+        
+        # Text positioning
         cv2.putText(frame, name, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
@@ -36,8 +45,6 @@ def save_sequence(sequence, filename="sequence.txt"):
         print(f"An error occurred while saving to file: {e}")
 
 class FingerTracker:
-    """Smooths finger position to reduce jitter."""
-    
     def __init__(self, buffer_size=5):
         self.positions = deque(maxlen=buffer_size)
     
@@ -56,15 +63,10 @@ class FingerTracker:
 def is_finger_pointing(hand_landmarks):
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
     index_pip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_PIP]
-    index_extended = index_tip.y < index_pip.y
-    return index_extended
+    return index_tip.y < index_pip.y
 
 
 def is_finger_clicking_z(hand_landmarks):
-    """
-    Check if the finger is pressing down using Z-axis depth.
-    Compares Index Finger Tip Z vs Wrist Z.
-    """
     wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
     
