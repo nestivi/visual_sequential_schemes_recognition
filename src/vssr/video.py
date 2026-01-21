@@ -1,53 +1,69 @@
 # video.py
-"""
-    Video capture and display functions.
-"""
-
 import cv2
 from .detection import initialize_hands, process_frame
 from .utils import draw_buttons, save_sequence
 from .config import VIDEO_PATH, BUTTONS
-from .state import click_sequence, sync_button_states  # <--- DODANO IMPORT
-from .calibration import detect_buttons_visual
+from .state import click_sequence, sync_button_states
+from .calibration import detect_buttons_visual, get_clean_background # <--- NOWY IMPORT
 
 def run_video():
     """
         Main function to run hand detection on video file.
     """
-    # Initialize MediaPipe Hands
-    hands = initialize_hands()
+    # --- STEP 1: HYBRID CALIBRATION ---
+    print(f"Opening video: {VIDEO_PATH}")
     
-    # Open video file
+    # 1. Generate Clean Plate (Median Background)
+    clean_bg = get_clean_background(VIDEO_PATH)
+    
+    if clean_bg is not None:
+        # 2. Detect buttons on the clean image
+        detected_buttons = detect_buttons_visual(clean_bg)
+        
+        # 3. Temporarily update BUTTONS to draw them on the preview
+        BUTTONS.clear()
+        BUTTONS.update(detected_buttons)
+        sync_button_states() # Reset states for drawing
+        
+        # 4. Draw preview for the user
+        preview_frame = clean_bg.copy()
+        draw_buttons(preview_frame)
+        
+        # Add instructions text
+        cv2.putText(preview_frame, "PRESS 'y' TO ACCEPT, 'q' TO QUIT", (50, 50), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        
+        # 5. Manual Confirmation Loop
+        print("Waiting for user confirmation...")
+        accepted = False
+        while True:
+            cv2.imshow("CALIBRATION CHECK - Clean Background", preview_frame)
+            key = cv2.waitKey(0) & 0xFF
+            
+            if key == ord('y'):
+                accepted = True
+                print("Calibration accepted by user.")
+                cv2.destroyWindow("CALIBRATION CHECK - Clean Background")
+                break
+            elif key == ord('q'):
+                print("Calibration rejected. Exiting.")
+                return
+        
+        if not accepted:
+            return
+    else:
+        print("Failed to generate background. Using hardcoded buttons.")
+
+    # --- STEP 2: MAIN VIDEO LOOP ---
+    
+    hands = initialize_hands()
     cap = cv2.VideoCapture(VIDEO_PATH)
     
     if not cap.isOpened():
-        print(f"Error: could not open video file: {VIDEO_PATH}")
+        print("Error opening video.")
         return
     
     print("Starting analysis... Press 'q' to quit.")
-    
-    # --- AUTOMATIC CALIBRATION STEP ---
-    ret, first_frame = cap.read()
-    if ret:
-        print("Running automatic button detection on first frame...")
-        detected_buttons = detect_buttons_visual(first_frame)
-        
-        if detected_buttons:
-            # Update the global BUTTONS dictionary
-            BUTTONS.clear()
-            BUTTONS.update(detected_buttons)
-            
-            # --- KLUCZOWA ZMIANA: ODŚWIEŻAMY STANY ---
-            sync_button_states()
-            # -----------------------------------------
-            
-            # Reset video to the beginning
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        else:
-            print("Using default hardcoded buttons (Backup mode).")
-            # Również synchronizujemy, na wszelki wypadek
-            sync_button_states()
-    # ----------------------------------
     
     try:
         while cap.isOpened():
@@ -56,22 +72,15 @@ def run_video():
                 print("End of video.")
                 break
             
-            # Process frame with detection
             frame, _ = process_frame(frame, hands)
-            
-            # Draw buttons on frame
             draw_buttons(frame)
-            
-            # Display frame
             cv2.imshow("Sequence Analyzer", frame)
             
-            # Check for quit key
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 print("Interrupted by user.")
                 break
     
     finally:
-        # Save sequence and cleanup
         save_sequence(click_sequence)
         cap.release()
         cv2.destroyAllWindows()
