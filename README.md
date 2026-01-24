@@ -43,12 +43,6 @@ This project detects button clicks in a video using MediaPipe and OpenCV. It fea
 ---
 
 ## Running the program
-Make sure the virtual enviorment is activated:
-
-    ```bash
-    .\.venv\Scripts\activate
-    ```
-
 Option 1: Web GUI (Streamlit) - Recommended
 
 Runs the application in your browser. Allows for drag & drop video upload, automatic calibration, and result visualization.
