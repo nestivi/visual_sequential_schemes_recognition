@@ -94,8 +94,8 @@ visual_sequentional_schemes_recognition/
 
 ## Notes
 
-    The project works best with Python 3.10 on Windows.
+- The project works best with Python 3.10 on Windows.
 
-    If you encounter DLL errors with mediapipe, make sure Visual C++ Build Tools v14 or newer are installed.
+- If you encounter DLL errors with mediapipe, make sure Visual C++ Build Tools v14 or newer are installed.
 
-    Tuning: If detection is too sensitive or buttons are clicked twice, refer to TUNING_GUIDE.md to adjust cooldown_frames and click_threshold_z in config.py.
+- Tuning: If detection is too sensitive or buttons are clicked twice, refer to TUNING_GUIDE.md to adjust cooldown_frames and click_threshold_z in config.py.
