@@ -47,17 +47,17 @@ Option 1: Web GUI (Streamlit) - Recommended
 
 Runs the application in your browser. Allows for drag & drop video upload, automatic calibration, and result visualization.
 
-    ```bash
-    streamlit run src/vssr/app.py
-    ```
+```bash
+streamlit run src/vssr/app.py
+```
 
 Option 2: Desktop Mode
 
 Runs the analysis in a standard OpenCV window using the default video path configured in config.py.
 
-    ```bash
-    python -m vssr
-    ```
+```bash
+python -m vssr
+```
 
 Press q in the video window to quit the program.
 
