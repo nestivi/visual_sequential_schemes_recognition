@@ -1,41 +1,84 @@
+"""
+Main GUI Application Module.
+
+This module provides a web-based interface for the VSSR system using Streamlit.
+It orchestrates the entire workflow:
+1. Video file upload.
+2. Automatic calibration (background generation and button detection).
+3. Real-time analysis and sequence recording.
+"""
+
 import streamlit as st
 import cv2
 import tempfile
-import os
 import time
+from typing import Optional, List, Tuple
 from vssr.calibration import get_clean_background, detect_buttons_visual
 from vssr.detection import initialize_hands, process_frame
-from vssr.utils import draw_buttons
+from vssr.utils import draw_buttons, save_sequence
 from vssr import config
 from vssr import state
 
-# Konfiguracja strony
+
 st.set_page_config(
-    page_title="Detekcja Sekwencji",
+    page_title="Visual Sequential Sequence Recognition",
     layout="wide"
 )
 
-# --- FUNKCJE POMOCNICZE ---
+def save_uploaded_file(uploaded_file) -> Optional[str]:
+    """
+    Saves a Streamlit UploadedFile to a temporary file on disk.
+    Required because OpenCV VideoCapture needs a file path, not a memory buffer.
 
-def save_uploaded_file(uploaded_file):
-    """Zapisuje wgrany plik do folderu tymczasowego, aby OpenCV mógł go otworzyć."""
+    Args:
+        uploaded_file: The file object returned by st.file_uploader.
+
+    Returns:
+        Optional[str]: The absolute path to the saved temporary file, or None on error.
+    """
     try:
         tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
         tfile.write(uploaded_file.read())
         return tfile.name
-    except Exception as e:
-        st.error(f"Błąd zapisu pliku: {e}")
+    except OSError as e:
+        st.error(f"Error saving uploaded file: {e}")
         return None
 
-# --- GŁÓWNA APLIKACJA ---
 
-def main():
+def format_sequence_log(sequence: List[Tuple[str, float]]) -> str:
+    """
+    Formats the raw sequence data into a readable string for the UI.
+
+    Args:
+        sequence (List[Tuple[str, float]]): List of (Button Name, Duration).
+
+    Returns:
+        str: Formatted string ("1. BTN_1 [0.45s]\n").
+    """
+    if not sequence:
+        return "Waiting for interaction..."
+    
+    log_lines = [
+        f"{i+1}. {name} ({duration:.2f}s)" 
+        for i, (name, duration) in enumerate(sequence)
+    ]
+    return "\n".join(log_lines)
+
+
+# --- MAIN APPLICATION LOGIC ---
+
+def main() -> None:
+    """
+    Main entry point for the Streamlit application.
+    Manages session state and renders UI components based on the processing stage.
+    """
     st.title("Visual Sequential Schemes Recognition")
     st.markdown("---")
 
-    # Inicjalizacja stanu (Session State)
+    # --- SESSION STATE INITIALIZATION ---
     if 'processing_stage' not in st.session_state:
-        st.session_state.processing_stage = "upload" # upload -> calibration -> analysis -> done
+        # Stages: "upload" -> "calibration_ready" -> "calibration_review" -> "analysis"
+        st.session_state.processing_stage = "upload"
     if 'video_path' not in st.session_state:
         st.session_state.video_path = None
     if 'detected_buttons' not in st.session_state:
@@ -43,149 +86,160 @@ def main():
     if 'clean_bg_image' not in st.session_state:
         st.session_state.clean_bg_image = None
 
-    # --- KROK 1: WGRYWANIE PLIKU ---
+    # --- STEP 1: INPUT HANDLING (SIDEBAR) ---
     
     with st.sidebar:
-        st.header("1. Dane wejściowe")
-        uploaded_file = st.file_uploader("Wybierz plik wideo", type=['mp4', 'avi', 'mov'])
+        st.header("1. Input Wideo")
+        uploaded_file = st.file_uploader("Choose video file", type=['mp4', 'avi', 'mov'])
 
         if uploaded_file is not None:
-            # Zapisz plik tylko jeśli jeszcze tego nie zrobiono lub zmieniono plik
-            if st.session_state.video_path is None:
+            # Check if this is a new file or the same one
+            # Note: simplistic check; allows re-uploading the same file to reset
+            current_path = st.session_state.video_path
+            
+            # If no path yet, or we want to overwrite
+            if current_path is None:
                 path = save_uploaded_file(uploaded_file)
-                st.session_state.video_path = path
-                st.success(f"Wczytano: {uploaded_file.name}")
-                st.session_state.processing_stage = "calibration_ready"
+                if path:
+                    st.session_state.video_path = path
+                    st.success(f"Loaded: {uploaded_file.name}")
+                    st.session_state.processing_stage = "calibration_ready"
+                    
+                    # Reset calibration state for new file
+                    st.session_state.clean_bg_image = None
+                    st.session_state.detected_buttons = {}
 
-    # --- KROK 2: KALIBRACJA (Ukrywanie ręki i detekcja przycisków) ---
+    # --- STEP 2: CALIBRATION WORKFLOW ---
     
     if st.session_state.video_path and st.session_state.processing_stage in ["calibration_ready", "calibration_review"]:
-        st.header("2. Kalibracja Automatyczna")
+        st.header("2. Automatic Calibration")
         
         col1, col2 = st.columns([3, 1])
         
+        # Right Column: Controls
         with col2:
-            st.info("System przeanalizuje pierwsze klatki, aby usunąć rękę i wykryć przyciski.")
-            if st.button("Uruchom Kalibrację", type="primary"):
-                with st.spinner('Generowanie czystego tła i detekcja...'):
-                    # 1. Twoja funkcja usuwania ręki
+            st.info(
+                "System will analyze the first frames of the video to remove "
+                "moving objects (hand) and detect buttons on a static background."
+            )
+            
+            if st.button("Run Calibration", type="primary"):
+                with st.spinner('Generating clean background and detecting objects...'):
                     clean_bg = get_clean_background(st.session_state.video_path)
                     
                     if clean_bg is not None:
-                        # 2. Twoja funkcja detekcji przycisków
                         detected_btns = detect_buttons_visual(clean_bg)
                         
+                        # Update State
                         st.session_state.clean_bg_image = clean_bg
                         st.session_state.detected_buttons = detected_btns
                         st.session_state.processing_stage = "calibration_review"
                     else:
-                        st.error("Nie udało się wygenerować tła.")
+                        st.error("Error: Failed to generate background from video.")
 
+        # Left Column: Visualization & Confirmation
         with col1:
-            # Wyświetlanie podglądu kalibracji
             if st.session_state.processing_stage == "calibration_review":
-                # Kopia obrazu do rysowania podglądu
+                # Create a copy for visualization to avoid modifying the original background
                 preview = st.session_state.clean_bg_image.copy()
                 
-                # Aktualizujemy globalny config (ważne, bo utils.draw_buttons korzysta z config.BUTTONS)
+                # --- SYNC CONFIGURATION ---
                 config.BUTTONS.clear()
                 config.BUTTONS.update(st.session_state.detected_buttons)
                 state.sync_button_states()
-                
-                # Rysujemy przyciski używając Twojej funkcji
+
                 draw_buttons(preview)
                 
-                # Konwersja BGR -> RGB dla Streamlit
                 preview_rgb = cv2.cvtColor(preview, cv2.COLOR_BGR2RGB)
-                st.image(preview_rgb, caption="Wykryte przyciski na czystym tle", use_container_width=True)
-                
-                st.write(f"Wykryto przycisków: {len(st.session_state.detected_buttons)}")
-                
-                # Przyciski akceptacji
+                st.image(preview_rgb, caption="Calibration Preview", use_container_width=True)
+
+                st.success(f"Detected objects: {len(st.session_state.detected_buttons)}")
+
+                # Decision Buttons
                 c1, c2 = st.columns(2)
-                if c1.button("✅ Zatwierdź i Analizuj"):
+                if c1.button("✅ Confirm and Proceed"):
                     st.session_state.processing_stage = "analysis"
                     st.rerun()
-                if c2.button("❌ Odrzuć i Spróbuj Ponownie"):
+                
+                if c2.button("❌ Reject and Restart"):
                     st.session_state.processing_stage = "calibration_ready"
                     st.rerun()
 
-    # --- KROK 3: ANALIZA SEKWENCJI ---
+    # --- STEP 3: ANALYSIS LOOP ---
 
     if st.session_state.processing_stage == "analysis":
-        st.header("3. Analiza Wideo")
+        st.header("3.Video Analysis")
         
-        # Resetujemy stan sekwencji przed analizą
-        state.click_sequence.clear()
-        
+        # UI Layout
         col_video, col_data = st.columns([2, 1])
         
         with col_data:
-            st.subheader("Wykryta Sekwencja")
-            # Placeholder na listę sekwencji
-            sequence_container = st.empty()
-            # Placeholder na status
-            status_container = st.empty()
+            st.subheader("Detected Sequence")
+            sequence_placeholder = st.empty()
+            status_placeholder = st.empty()
             
-            stop_btn = st.button("Zatrzymaj Analizę")
+            st.divider()
+            stop_btn = st.button("Stop Analysis")
 
         with col_video:
             video_placeholder = st.empty()
+            progress_bar = st.progress(0)
             
-            # Inicjalizacja Twoich rąk MediaPipe
             hands = initialize_hands()
             cap = cv2.VideoCapture(st.session_state.video_path)
             
-            progress_bar = st.progress(0)
             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            
             frame_idx = 0
-            
+
+            # state.click_sequence.clear() 
+
+            # Main Loop
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
                 
                 if stop_btn:
-                    status_container.warning("Zatrzymano przez użytkownika.")
+                    status_placeholder.warning("Analysis stopped by user.")
                     break
 
-                # --- TWOJA LOGIKA DETEKCJI ---
-                # Przetwarzanie klatki
+                # --- CORE DETECTION LOGIC ---
                 frame, active_btn = process_frame(frame, hands)
                 
-                # Rysowanie przycisków
                 draw_buttons(frame)
                 
-                # --- WIZUALIZACJA W STREAMLIT ---
-                # Streamlit używa RGB, OpenCV używa BGR
+                # --- UI UPDATES ---
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 video_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
                 
-                # Aktualizacja paska bocznego z wynikami
-                sequence_container.code(str(state.click_sequence))
-                
-                # Pasek postępu
+                log_text = format_sequence_log(state.click_sequence)
+                sequence_placeholder.code(log_text, language="text")
+
                 frame_idx += 1
                 if total_frames > 0:
                     progress_bar.progress(min(frame_idx / total_frames, 1.0))
                 
-                # Opcjonalne spowolnienie, żeby nie działało za szybko dla oka (opcjonalne)
                 # time.sleep(0.01)
 
             cap.release()
             hands.close()
             
-            status_container.success("Analiza zakończona!")
-            st.balloons()
+            # Final Actions
+            if not stop_btn:
+                status_placeholder.success("Analysis completed successfully")
+                st.balloons()
             
-            # Wyniki końcowe
-            st.success(f"Finalna sekwencja: {state.click_sequence}")
+            st.success(f"Length of sequence: {len(state.click_sequence)}")
             
-            # Przycisk restartu
-            if st.button("Rozpocznij od nowa"):
+
+            save_sequence(state.click_sequence)
+            st.info(f"Results saved to: {config.RESULT_PATH}")
+
+            # Restart Option
+            if st.button("Restart"):
                 st.session_state.processing_stage = "upload"
                 st.session_state.video_path = None
+                state.click_sequence.clear()
                 st.rerun()
 
 if __name__ == "__main__":
