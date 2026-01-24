@@ -7,6 +7,7 @@ import os
 # Path to file
 VIDEO_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "tests", "test4.mp4")
 VIDEO_PATH = VIDEO_FILE
+RESULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "results")
 
 # Button definitions (x, y, width, height)
 BUTTONS = {
@@ -36,7 +37,7 @@ CLICK_MECHANICS = {
     # Progi dla osi Z (głębia). 
     # Wartość np. -0.05 oznacza próg wciśnięcia względem nadgarstka.
     "click_depth_threshold": -0.05, 
-    "click_cooldown": 0.3
+    "click_cooldown": 0.5
 }
 
 # Visual settings
