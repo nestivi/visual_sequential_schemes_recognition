@@ -1,11 +1,11 @@
 """
     Utility functions for hand gesture recognition.
 """
-
+import os
 import cv2
 import mediapipe as mp
 from collections import deque
-from .config import BUTTONS, CLICK_MECHANICS
+from .config import BUTTONS, CLICK_MECHANICS, RESULT_PATH
 
 mp_hands = mp.solutions.hands
 
@@ -37,10 +37,13 @@ def draw_buttons(frame):
 
 def save_sequence(sequence, filename="sequence.txt"):
     try:
-        with open(filename, "w", encoding="utf-8") as f:
+        os.makedirs(RESULT_PATH, exist_ok=True)
+
+        file_path = os.path.join(RESULT_PATH, filename)
+        with open(file_path, "w", encoding="utf-8") as f:
             for click in sequence:
                 f.write(f"{click}\n")
-        print(f"Sequence saved to file: {filename}")
+        print(f"Sequence saved to file: {file_path}")
     except Exception as e:
         print(f"An error occurred while saving to file: {e}")
 
