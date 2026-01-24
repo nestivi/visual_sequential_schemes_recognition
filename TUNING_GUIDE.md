@@ -1,210 +1,221 @@
-# Hand Recognition Tuning Guide
+# Hand Recognition Tuning Guide 🎛️
 
 ## Quick Start
 
-All tuning is done in `config.py` - no need to modify other files!
+All tuning is done in `src/vssr/config.py` - no need to modify other files!
+
+This system uses **Z-Axis Depth** detection (moving finger towards the camera) instead of pinch gestures.
+
+---
 
 ## Common Issues and Solutions
 
 ### 1. Hand Not Detected / Missing Often
-**Problem**: Camera doesn't see your hand reliably
+**Problem**: Camera doesn't see your hand reliably, or loses tracking.
 
-**Solution** in `config.py`:
+**Solution** in `HAND_RECOGNITION`:
 ```python
 HAND_RECOGNITION = {
-    "min_detection_confidence": 0.5,  # Lower this (was 0.7)
-    "min_tracking_confidence": 0.5,   # Lower this (was 0.6)
+    "min_detection_confidence": 0.5,  # Lower this (default 0.7)
+    "min_tracking_confidence": 0.5,   # Lower this (default 0.7)
     # ... rest stays same
 }
 ```
 
 **Also try**:
-- Improve lighting in your room
-- Move hand closer to camera
-- Ensure plain background behind hand
 
----
+    - Improve lighting in your room.
+    - Ensure plain background behind hand.
 
-### 2. Too Many False Clicks / Too Sensitive
-**Problem**: Buttons activate when you don't want them to
+### 2. Double Clicking / Bouncing
 
-**Solution** in `config.py`:
-```python
-HAND_RECOGNITION = {
-    "min_detection_confidence": 0.8,  # Increase (was 0.7)
-    "use_gesture_check": True,        # Enable (was False)
-    "use_pinch": True,                # Enable (was False)
-    "pinch_threshold": 0.04,          # Lower = harder to trigger
+**Problem**: One physical click registers as two or three rapid clicks.
+
+**Solution** in CLICK_MECHANICS:
+```Python
+
+CLICK_MECHANICS = {
+    "cooldown_frames": 20,       # Increase this (default 15)
     # ... rest stays same
 }
 ```
 
----
+**Note**: 15 frames is approx. 0.5 seconds at 30 FPS. Increasing to 30 gives a full second of pause.
 
-### 3. Jittery / Shaky Cursor
-**Problem**: Finger position jumps around
+### 3. Too Sensitive (Ghost Clicks)
 
-**Solution** in `config.py`:
-```python
+**Problem**: Buttons activate when you are just hovering over them, without pushing forward.
+
+**Solution** in CLICK_MECHANICS:
+```Python
+
+CLICK_MECHANICS = {
+    "click_threshold_z": -0.08,  # Make more negative (default -0.05)
+    # ... rest stays same
+}
+```
+
+**Logic**: Lower value (more negative) requires the finger to be closer to the camera to trigger.
+### 4. Hard to Click (Unresponsive)
+
+**Problem**: You have to push your finger very far forward to register a click.
+
+**Solution** in CLICK_MECHANICS:
+```Python
+
+CLICK_MECHANICS = {
+    "click_threshold_z": -0.03,  # Make less negative/closer to 0 (default -0.05)
+    # ... rest stays same
+}
+```
+
+### 5. Jittery / Shaky Cursor
+
+**Problem**: Finger position jumps around even when holding still.
+
+**Solution** in HAND_RECOGNITION:
+```Python
+
 HAND_RECOGNITION = {
-    "min_tracking_confidence": 0.8,   # Increase (was 0.6)
     "use_smoothing": True,            # Ensure enabled
-    "smoothing_buffer_size": 8,       # Increase (was 5)
+    "smoothing_buffer_size": 8,       # Increase (default 5)
     # ... rest stays same
 }
 ```
 
----
+### 6. Laggy / Slow Response
 
-### 4. Too Slow to Respond
-**Problem**: Cursor lags behind hand movement
+**Problem**: Cursor lags behind hand movement.
 
-**Solution** in `config.py`:
-```python
+**Solution** in HAND_RECOGNITION:
+```Python
+
 HAND_RECOGNITION = {
-    "smoothing_buffer_size": 3,       # Decrease (was 5)
-    "min_tracking_confidence": 0.5,   # Lower (was 0.6)
-    "model_complexity": 0,            # Use fastest model
+    "smoothing_buffer_size": 3,       # Decrease (default 5)
+    "model_complexity": 0,            # Use fastest model (default 1)
     # ... rest stays same
 }
 ```
-
----
-
-### 5. Want Click-Like Behavior
-**Problem**: Want to "click" buttons instead of just hovering
-
-**Solution** in `config.py`:
-```python
-HAND_RECOGNITION = {
-    "use_pinch": True,                # Enable pinch-to-click
-    "pinch_threshold": 0.05,          # Adjust sensitivity
-    # ... rest stays same
-}
-```
-
-Adjust `pinch_threshold`:
-- `0.03` - Very tight pinch required
-- `0.05` - Normal (default)
-- `0.08` - Easy to trigger
-
----
-
-### 6. Want Pointing Gesture Only
-**Problem**: Only want to detect when finger is pointing
-
-**Solution** in `config.py`:
-```python
-HAND_RECOGNITION = {
-    "use_gesture_check": True,        # Enable gesture check
-    # ... rest stays same
-}
-```
-
-Now it only works when index finger is extended (pointing).
 
 ---
 
 ## Parameter Reference
+### 1. Detection Parameters (HAND_RECOGNITION)
 
-### Detection Parameters
-- **min_detection_confidence**: `0.5` - `0.9`
-  - Lower = detects hand easier (but more false positives)
-  - Higher = more reliable (but may miss hand)
-  - Default: `0.7`
+    min_detection_confidence: 0.5 - 0.9
 
-- **min_tracking_confidence**: `0.5` - `0.9`
-  - Lower = faster updates (but jumpier)
-  - Higher = smoother tracking (but slower)
-  - Default: `0.6`
+        Lower = detects hand easier (but more false positives)
 
-- **model_complexity**: `0`, `1`, or `2`
-  - `0` = Fastest, least accurate
-  - `1` = Balanced (default)
-  - `2` = Most accurate, slowest
+        Higher = strict detection (may miss hand)
 
-### Feature Toggles
-- **use_smoothing**: `True` / `False`
-  - Smooths finger movement
-  - Recommended: `True`
+        Default: 0.7
 
-- **use_gesture_check**: `True` / `False`
-  - Only detect when finger is pointing
-  - Use if getting false detections
+    min_tracking_confidence: 0.5 - 0.9
 
-- **use_pinch**: `True` / `False`
-  - Require pinch gesture to click
-  - Good for preventing accidental clicks
+        Lower = faster updates (but jumpier)
 
-### Smoothing
-- **smoothing_buffer_size**: `3` - `10`
-  - Higher = smoother but slower
-  - Lower = faster but jumpier
-  - Default: `5`
+        Higher = smoother tracking (but slower)
 
-### Pinch Detection
-- **pinch_threshold**: `0.03` - `0.08`
-  - Lower = tighter pinch needed
-  - Higher = easier to trigger
-  - Default: `0.05`
+        Default: 0.7
 
----
+    model_complexity: 0 or 1
 
-## Recommended Presets
+        0 = Fastest, least accurate
 
-### Preset 1: Default (Balanced)
-```python
+        1 = Balanced / Accurate (default)
+
+    use_smoothing: True / False
+
+        Smooths finger movement using a moving average.
+
+        Recommended: True
+
+    smoothing_buffer_size: 3 - 10
+
+        Higher = smoother but slower (laggy).
+
+        Lower = faster but jumpier.
+
+        Default: 5
+
+    use_gesture_check: True / False
+
+        Only allows interaction if the index finger is pointing up.
+
+        Useful if the system detects fists or open palms as clicks.
+
+### 2. Interaction Mechanics (CLICK_MECHANICS)
+
+    click_threshold_z: -0.02 to -0.10
+
+        Defines how "deep" the press must be.
+
+        Values are relative to the wrist depth.
+
+        -0.03: Very sensitive (light press).
+
+        -0.08: Hard press (requires significant motion towards camera).
+
+        Default: -0.05
+
+    cooldown_frames: 5 - 60
+
+        Number of frames to wait before allowing the same button to be clicked again.
+
+        Prevents accidental double-clicks.
+
+        Default: 15 (~0.5s)
+
+### Recommended Presets
+**Preset 1**: Default (Balanced)
+```bash
+
 HAND_RECOGNITION = {
     "min_detection_confidence": 0.7,
-    "min_tracking_confidence": 0.6,
+    "min_tracking_confidence": 0.7,
     "model_complexity": 1,
     "use_smoothing": True,
     "use_gesture_check": False,
-    "use_pinch": False,
+    "use_depth_click": True,
     "smoothing_buffer_size": 5,
-    "pinch_threshold": 0.05,
+}
+CLICK_MECHANICS = {
+    "click_threshold_z": -0.05,
+    "cooldown_frames": 15
 }
 ```
+**Preset 2**: High Accuracy (Prevent False Clicks)
+```bash
 
-### Preset 2: High Accuracy (Prevent False Clicks)
-```python
 HAND_RECOGNITION = {
     "min_detection_confidence": 0.8,
-    "min_tracking_confidence": 0.7,
-    "model_complexity": 2,
-    "use_smoothing": True,
-    "use_gesture_check": True,
-    "use_pinch": True,
-    "smoothing_buffer_size": 6,
-    "pinch_threshold": 0.04,
-}
-```
-
-### Preset 3: Fast Response (Gaming)
-```python
-HAND_RECOGNITION = {
-    "min_detection_confidence": 0.6,
-    "min_tracking_confidence": 0.5,
-    "model_complexity": 0,
-    "use_smoothing": True,
-    "use_gesture_check": False,
-    "use_pinch": False,
-    "smoothing_buffer_size": 3,
-    "pinch_threshold": 0.05,
-}
-```
-
-### Preset 4: Poor Lighting
-```python
-HAND_RECOGNITION = {
-    "min_detection_confidence": 0.5,
-    "min_tracking_confidence": 0.5,
+    "min_tracking_confidence": 0.8,
     "model_complexity": 1,
     "use_smoothing": True,
-    "use_gesture_check": False,
-    "use_pinch": False,
+    "use_gesture_check": True,  # Strict gesture check
+    "use_depth_click": True,
     "smoothing_buffer_size": 7,
-    "pinch_threshold": 0.05,
+}
+CLICK_MECHANICS = {
+    "click_threshold_z": -0.07, # Requires deeper press
+    "cooldown_frames": 30       # Long cooldown (1s)
+}
+```
+
+**Preset 3**: Fast Response (Gaming/Spamming)
+```bash
+HAND_RECOGNITION = {
+    "min_detection_confidence": 0.6,
+    "min_tracking_confidence": 0.6,
+    "model_complexity": 0,      # Faster model
+    "use_smoothing": True,
+    "use_gesture_check": False,
+    "use_depth_click": True,
+    "smoothing_buffer_size": 3, # Minimal lag
+}
+CLICK_MECHANICS = {
+    "click_threshold_z": -0.04, # Sensitive
+    "cooldown_frames": 5        # Short cooldown
 }
 ```
 
@@ -212,10 +223,10 @@ HAND_RECOGNITION = {
 
 ## Testing Your Changes
 
-1. Edit `config.py`
-2. Run: `python -m src.vssr`
-3. Test hand detection
-4. Adjust parameters if needed
-5. Repeat until satisfied
+    - Edit src/vssr/config.py.
 
-**Tip**: Change one parameter at a time to understand its effect!
+    - Run Desktop Mode for quick feedback: python -m vssr.
+
+    - Check if the "Z-Depth" value on screen drops below your threshold when you press.
+
+    - Adjust parameters if needed.
