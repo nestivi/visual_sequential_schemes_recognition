@@ -233,7 +233,7 @@ def main() -> None:
             
 
             save_sequence(state.click_sequence)
-            st.info(f"Results saved to: {config.RESULT_PATH}")
+            # st.info(f"Results saved to: {config.RESULT_PATH}")
 
             # Restart Option
             if st.button("Restart"):
