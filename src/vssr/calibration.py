@@ -29,8 +29,6 @@ def get_clean_background(video_path: str, sample_frames: int = 25) -> Optional[n
     print(f"Info: Generating clean background from {video_path}...")
     
     try:
-        # We multiply by 5 to sample frames over a longer period of time,
-        # ensuring we capture the background behind the moving hand.
         max_iterations = sample_frames * 5
         
         for i in range(max_iterations):
@@ -38,7 +36,6 @@ def get_clean_background(video_path: str, sample_frames: int = 25) -> Optional[n
             if not ret:
                 break
             
-            # Take every 5th frame to get a variety of hand positions
             if i % 5 == 0:
                 frames.append(frame)
                 if len(frames) >= sample_frames:
@@ -50,8 +47,6 @@ def get_clean_background(video_path: str, sample_frames: int = 25) -> Optional[n
         print("Error: Could not read frames for background generation.")
         return None
 
-    # Calculate the median along the time axis (axis 0).
-    # Moving objects are statistical outliers, so the median removes them.
     print(f"Info: Calculating median from {len(frames)} frames...")
     median_frame = np.median(frames, axis=0).astype(dtype=np.uint8)
     
@@ -101,19 +96,16 @@ def detect_buttons_visual(frame: np.ndarray) -> Dict[str, Tuple[int, int, int, i
         if min_area < area < max_area:
             circularity = 4 * np.pi * (area / (perimeter * perimeter))
             
-            # Threshold 0.7 allows for slightly imperfect circles
             if circularity > 0.7:
                 x, y, w, h = cv2.boundingRect(cnt)
                 aspect_ratio = float(w) / h
                 
-                # Check aspect ratio (Square bounding box implies circle)
                 if 0.8 < aspect_ratio < 1.2:
                     detected_list.append((x, y, w, h))
 
     # Sort buttons by X coordinate (Left -> Right)
     detected_list.sort(key=lambda b: b[0])
     
-    # Generate dictionary with names
     buttons_dict: Dict[str, Tuple[int, int, int, int]] = {}
     for i, rect in enumerate(detected_list):
         name = f"BTN_{i+1}"
